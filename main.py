@@ -5,7 +5,7 @@ import pyttsx3
 from PyQt5 import QtWidgets, QtCore, QtGui
 import ui_untitled
 from PyQt5.QtCore import QThreadPool
-#
+
 class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssistant):
     def __init__(self):
         super(MyPersonalAssistantApp, self).__init__()
