@@ -90,17 +90,20 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         text_to_add = self.textEdit_input.toPlainText().strip()
 
         if text_to_add:
-            user_text_label = QtWidgets.QLabel(text_to_add, self.scrollAreaWidgetContents_7)
-            user_text_label.setStyleSheet(
-                "padding: 10px; margin: 5px; border-radius: none; background-color: #fff; color: #00401E;"
-            )
-            user_text_label.setWordWrap(True)
-            user_text_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            self.vertical_layout.addWidget(user_text_label)
+            self.add_message_to_chat(text_to_add, "user")
             self.process_user_request(text_to_add)
-
             self.textEdit_input.clear()
+
+    def scroll_to_bottom(self):
+        """
+        Прокручивает область чата к последнему сообщению.
+        """
+        def perform_scroll():
+            if self.scrollAreaWidgetContents_7.layout():
+                self.scrollAreaWidgetContents_7.layout().activate()
+                self.scrollAreaWidgetContents_7.updateGeometry()
             self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
+        QtCore.QTimer.singleShot(75, perform_scroll)
 
     def setup_tts(self):
         """Настраивает движок Text-to-Speech (TTS)."""
@@ -157,8 +160,6 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         """
         Записывает аудио с микрофона и распознает речь.
         Выполняется в отдельном потоке.
-        Запись и распознавание продолжаются, пока кнопка не будет нажата повторно
-        или пока не произойдет перенаправление на сайт (что обрабатывается в process_user_request).
         """
         while self.voice_button_state:
             recognized_data = ""
@@ -166,38 +167,42 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
                 with self.microphone as source:
                     self.recognizer.adjust_for_ambient_noise(source, duration=1)
                     audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-
             except speech_recognition.WaitTimeoutError:
                 if self.voice_button_state:
                     continue
                 else:
                     self.add_message_to_chat("Время ожидания записи истекло.", "bot")
+                    self.scroll_to_bottom()
                     break
             except Exception as e:
                 print(f"Ошибка при записи аудио: {e}")
                 self.add_message_to_chat("Произошла ошибка при записи аудио.", "bot")
+                self.scroll_to_bottom()
                 break
 
             try:
                 if audio:
                     self.add_message_to_chat("Распознаю...", "bot")
+                    self.scroll_to_bottom()
                     recognized_data = self.recognizer.recognize_google(audio, language="ru").lower()
                     self.add_message_to_chat(f"Вы сказали: {recognized_data}", "user")
                     self.process_user_request(recognized_data)
-
             except speech_recognition.UnknownValueError:
                 error_message = "Простите, не совсем поняла вас, повторите, пожалуйста"
                 self.add_message_to_chat(error_message, "bot")
                 if self.voice_button_state:
                     self.play_voice_assistant_speech(error_message)
+                self.scroll_to_bottom()
             except Exception as e:
                 print(f"Ошибка при распознавании речи: {e}")
                 self.add_message_to_chat("Произошла ошибка при распознавании речи.", "bot")
+                self.scroll_to_bottom()
             if not self.voice_button_state:
                 break
         if not self.voice_button_state:
             self.add_message_to_chat("Голосовой ввод отключен.", "bot")
             self.toggle_voice_button_border(False)
+            self.scroll_to_bottom()
 
     def play_voice_assistant_speech(self, text_to_speech):
         """
@@ -255,6 +260,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             bot_label.setWordWrap(True)
             bot_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
             self.vertical_layout.addWidget(bot_label)
+            self.scroll_to_bottom()
         elif sender == "user":
             user_text = QtWidgets.QLabel(message, self.scrollAreaWidgetContents_7)
             user_text.setStyleSheet(
@@ -263,8 +269,6 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             user_text.setWordWrap(True)
             user_text.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
             self.vertical_layout.addWidget(user_text)
-
-        self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
