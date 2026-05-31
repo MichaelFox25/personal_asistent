@@ -16,23 +16,16 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.ttsEngine = pyttsx3.init()
         self.setup_tts()
         self.responses = {
-            "нормативные": "https://new.vyatsu.ru/sveden/document/",
-            "документы": "https://new.vyatsu.ru/sveden/document/",
-            "институты": "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html",
-            "факультеты": "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html",
-            "кафедры": "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html",
-            "контакты": "https://www.vyatsu.ru/contacts",
-            "преподаватели": "https://www.vyatsu.ru/studentu-1/kto-est-kto-v-vyatgu.html",
-            "поступление": "https://new.vyatsu.ru/",
-            "приемная": "https://new.vyatsu.ru/",
-            "новости": "https://www.vyatsu.ru/internet-gazeta.html",
-            "газета": "https://www.vyatsu.ru/internet-gazeta.html",
-            "корпус": "https://www.vyatsu.ru/studentu-1/pervokursniku/adresa-i-telefonyi-uchebnyih-korpusov-fakul-tetov.html",
-            "расположение": "https://www.vyatsu.ru/studentu-1/pervokursniku/adresa-i-telefonyi-uchebnyih-korpusov-fakul-tetov.html",
-            "расписание": "https://www.vyatsu.ru/studentu-1/spravochnaya-informatsiya/raspisanie.html",
-            "учебный": "https://www.vyatsu.ru/sotrudniku/doska/grafiki-uchebnogo-protsessa-na-2015-2016-uchebnyiy.html",
-            "график": "https://www.vyatsu.ru/sotrudniku/doska/grafiki-uchebnogo-protsessa-na-2015-2016-uchebnyiy.html",
-            "колледж": "https://www.vyatsu.ru/nash-universitet/obrazovatelnaya-deyatel-nost/kolledzh.html"
+            "https://new.vyatsu.ru/sveden/document/": ["нормативные", "документы"],
+            "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html": ["институты", "факультеты", "кафедры"],
+            "https://www.vyatsu.ru/contacts": ["контакты", "связ"],
+            "https://www.vyatsu.ru/studentu-1/kto-est-kto-v-vyatgu.html": ["преподаватели", "сотрудники"],
+            "https://new.vyatsu.ru/": ["поступление", "приемная", "абитуриентам"],
+            "https://www.vyatsu.ru/internet-gazeta.html": ["новости", "газета"],
+            "https://www.vyatsu.ru/studentu-1/pervokursniku/adresa-i-telefonyi-uchebnyih-korpusov-fakul-tetov.html": ["корпус"],
+            "https://www.vyatsu.ru/studentu-1/spravochnaya-informatsiya/raspisanie.html": ["расписание"],
+            "https://www.vyatsu.ru/sotrudniku/doska/grafiki-uchebnogo-protsessa-na-2015-2016-uchebnyiy.html": ["учебный", "график"],
+            "https://www.vyatsu.ru/nash-universitet/obrazovatelnaya-deyatel-nost/kolledzh.html": ["колледж"]
         }
         self.voice_button_state = False
 
@@ -86,7 +79,6 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         стилизует его и добавляет в вертикальный макет.
         """
         text_to_add = self.textEdit_input.toPlainText().strip()
-
         if text_to_add:
             self.add_message_to_chat(text_to_add, "user")
             self.process_user_request(text_to_add)
@@ -209,30 +201,45 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         Если запрос приводит к открытию сайта, голосовой ввод отключается.
         """
         command = request.lower()
+
+        # Обработка приветствий
         if command in ["привет", "здравствуйте", "добрый день"]:
             bot_response = "Здравствуйте! Чем могу помочь?"
             self.add_message_to_chat(bot_response, "bot")
+            self.play_voice_assistant_speech(bot_response) # Воспроизводим ответ голосом
             return
+
         found_link = False
-        for key, value in self.responses.items():
-            if key in command:
-                try:
-                    webbrowser.open(value, new=2, autoraise=True)
-                    response_message = "Нашел информацию. Открываю"
-                    self.add_message_to_chat(response_message, "bot")
+        target_url = None # Переменная для хранения URL, который нужно открыть
+
+        # Ищем URL в новом формате словаря
+        for url, phrases in self.responses.items():
+            for phrase in phrases:
+                if phrase.lower() in command:
+                    target_url = url
                     found_link = True
-                    self.voice_button_state = False
-                    break
-                except Exception as e:
-                    error_message = f"Нашел информацию, но не удалось открыть ссылку: {value}. Ошибка: {e}"
-                    self.add_message_to_chat(error_message, "bot")
-                    found_link = True
-                    self.voice_button_state = False
-                    break
-        if not found_link:
+                    break # Нашли фразу, выходим из внутреннего цикла
+            if found_link:
+                break # Нашли URL, выходим из внешнего цикла
+
+        if found_link and target_url:
+            try:
+                webbrowser.open(target_url, new=2, autoraise=True)
+                response_message = f"Нашел информацию по запросу '{request}'. Открываю страницу: {target_url}"
+                self.add_message_to_chat(response_message, "bot")
+                self.voice_button_state = False # Отключаем голосовой ввод после открытия ссылки
+                # Не воспроизводим голосом, если открываем ссылку
+            except Exception as e:
+                error_message = f"Нашел информацию, но не удалось открыть ссылку: {target_url}. Ошибка: {e}"
+                self.add_message_to_chat(error_message, "bot")
+                if self.voice_button_state: # Воспроизводим ошибку только если голос еще активен
+                    self.play_voice_assistant_speech(error_message)
+                self.voice_button_state = False # Отключаем, даже если ошибка
+        else:
+            # Если ссылка не найдена
             unknown_response = ("Извините, я не понял ваш запрос. Попробуйте переформулировать.")
             self.add_message_to_chat(unknown_response, "bot")
-            if self.voice_button_state:
+            if self.voice_button_state: # Воспроизводим ответ голосом, только если голос активен
                self.play_voice_assistant_speech(unknown_response)
 
     def add_message_to_chat(self, message, sender):
@@ -260,11 +267,6 @@ if __name__ == "__main__":
     main_window = MyPersonalAssistantApp()
     main_window.connect_input_actions()
     main_window.show()
-    recognizer = speech_recognition.Recognizer()
-    microphone = speech_recognition.Microphone()
-    ttsEngine = pyttsx3.init()
     exit_code = app.exec_()
-    if 'ttsEngine' in locals() and hasattr(ttsEngine, 'stop'):
-        ttsEngine.stop()
     sys.exit(exit_code)
 

@@ -348,7 +348,7 @@ class Ui_PersonalAssistant(object):
         self.label_60.setText(_translate("PersonalAssistant", "Информацию про корпуса"))
         self.label_61.setText(_translate("PersonalAssistant", "Контакты"))
         self.label_62.setText(_translate("PersonalAssistant", "Новости"))
-        self.label_63.setText(_translate("PersonalAssistant", "Нормативные акты"))
+        self.label_63.setText(_translate("PersonalAssistant", "Нормативные документы"))
         self.label_64.setText(_translate("PersonalAssistant", "Календарный учебный график"))
 
 
