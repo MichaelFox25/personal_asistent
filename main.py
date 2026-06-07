@@ -30,15 +30,12 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.voice_button_state = False
 
     def connect_input_actions(self):
-        """Подключает сигналы для кнопок."""
+        "Сигналы нажатия кнопок."
         self.pushButton_4.clicked.connect(self.add_text_to_scroll_area)
         self.toolButton_9.clicked.connect(self.toggle_voice_input)
 
     def adjust_input_height(self):
-        """
-        Регулирует высоту QTextEdit_input в зависимости от количества содержащихся строк.
-        Ограничивает высоту между minimumHeight() и maximumHeight(), затем включает прокрутку.
-        """
+        "Регулятор высоты QTextEdit_input в зависимости от количества строк. Ограничение высоты между minimumHeight() и maximumHeight(), затем прокрутка."
         doc = self.textEdit_input.document()
         content_height = doc.size().height()
         font_metrics = QtGui.QFontMetrics(self.textEdit_input.font())
@@ -61,10 +58,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.adjust_send_button_position()
 
     def adjust_send_button_position(self):
-        """
-        Корректирует позицию кнопки отправки и связанные элементы,
-        чтобы они находились на одном уровне с inputText.
-        """
+        "Позиция кнопки отправки и связанных элементов. На одном уровне с inputText."
         input_rect = self.textEdit_input.geometry()
         self.pushButton_4.move(
             self.pushButton_4.x(),
@@ -73,11 +67,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.frame_10.adjustSize()
 
     def add_text_to_scroll_area(self):
-        """
-        При нажатии на кнопку pushButton_4, берет текст из textEdit_input,
-        создает новый QLabel с этим текстом внутри scrollAreaWidgetContents_7,
-        стилизует его и добавляет в вертикальный макет.
-        """
+        "При нажатии на pushButton_4, берет текст из textEdit_input, создает QLabel с текстом внутри scrollAreaWidgetContents_7,стилизует его и добавляет в вертикальный макет."
         text_to_add = self.textEdit_input.toPlainText().strip()
         if text_to_add:
             self.add_message_to_chat(text_to_add, "user")
@@ -85,9 +75,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.textEdit_input.clear()
 
     def scroll_to_bottom(self):
-        """
-        Прокручивает область чата к последнему сообщению.
-        """
+        "Прокрутка к последнему сообщению."
         def perform_scroll():
             if self.scrollAreaWidgetContents_7.layout():
                 self.scrollAreaWidgetContents_7.layout().activate()
@@ -96,7 +84,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         QtCore.QTimer.singleShot(75, perform_scroll)
 
     def setup_tts(self):
-        """Настраивает движок Text-to-Speech (TTS)."""
+        "Настройка Text-to-Speech (TTS)."
         self.ttsEngine.setProperty('rate', 180)
         voices = self.ttsEngine.getProperty('voices')
         ru_voice_id = None
@@ -107,12 +95,10 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if ru_voice_id is not None:
             self.ttsEngine.setProperty('voice', ru_voice_id)
         else:
-            self.add_message_to_chat("Русский голос не найден. Установите русский голос в вашей системе.", "bot")
+            self.add_message_to_chat("Языковой файл для русского языка не найден. Проверьте настройки ашего устройства", "bot")
 
     def toggle_voice_button_border(self, state):
-        """
-        Нажатие на кнопку записи голоса
-        """
+        "Нажатие на кнопку голоса"
         if state:
             self.frame_14.setStyleSheet(
                 "background-color: #0D6D50; border-radius: 35px; border: 3px solid green; padding: 0px;")
@@ -129,10 +115,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
                 "background-color: rgba(255, 255, 255, 0);")
 
     def toggle_voice_input(self):
-        """
-        Обрабатывает нажатие на кнопку голосового ввода: начинает или останавливает запись.
-        Голосовой ввод активируется при первом нажатии и отключается при повторном.
-        """
+        "Обработка нажатия на кнопку голоса для нанала/остановки запись. Гс активируется при 1 нажатии и отключается при повторном."
         self.voice_button_state = not self.voice_button_state
         self.toggle_voice_button_border(self.voice_button_state)
         if self.voice_button_state:
@@ -144,10 +127,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.add_message_to_chat("Голосовой ввод отключен.", "bot")
 
     def record_and_recognize_audio_threaded(self):
-        """
-        Записывает аудио с микрофона и распознает речь.
-        Выполняется в отдельном потоке.
-        """
+        "Запись аудио с микрофона и распознование речи (Выполняется в отдельном потоке)"
         while self.voice_button_state:
             recognized_data = ""
             error_message = "Простите, не совсем поняла вас, повторите, пожалуйста"
@@ -184,9 +164,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.scroll_to_bottom()
 
     def play_voice_assistant_speech(self, text_to_speech):
-        """
-        Произносит заданный текст голосом ассистента.
-        """
+        "Произносит текст голосом ассистента."
         if text_to_speech:
             try:
                 if self.voice_button_state:
@@ -196,54 +174,43 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
                 print(f"Ошибка воспроизведения речи: {e}")
 
     def process_user_request(self, request):
-        """
-        Обрабатывает запрос пользователя и пытается найти соответствующий ответ.
-        Если запрос приводит к открытию сайта, голосовой ввод отключается.
-        """
+        "Обрабатывает запрос и ищет ответ. Если запрос открывает сайт, гс ввод отключается."
         command = request.lower()
-
-        # Обработка приветствий
         if command in ["привет", "здравствуйте", "добрый день"]:
             bot_response = "Здравствуйте! Чем могу помочь?"
             self.add_message_to_chat(bot_response, "bot")
-            self.play_voice_assistant_speech(bot_response) # Воспроизводим ответ голосом
+            self.play_voice_assistant_speech(bot_response)
             return
-
         found_link = False
-        target_url = None # Переменная для хранения URL, который нужно открыть
-
-        # Ищем URL в новом формате словаря
+        target_url = None
         for url, phrases in self.responses.items():
             for phrase in phrases:
                 if phrase.lower() in command:
                     target_url = url
                     found_link = True
-                    break # Нашли фразу, выходим из внутреннего цикла
+                    break
             if found_link:
-                break # Нашли URL, выходим из внешнего цикла
-
+                break
         if found_link and target_url:
             try:
                 webbrowser.open(target_url, new=2, autoraise=True)
-                response_message = f"Нашел информацию по запросу '{request}'. Открываю страницу: {target_url}"
+                response_message = "Нашел информацию. Открываю."
                 self.add_message_to_chat(response_message, "bot")
-                self.voice_button_state = False # Отключаем голосовой ввод после открытия ссылки
-                # Не воспроизводим голосом, если открываем ссылку
+                self.voice_button_state = False
             except Exception as e:
                 error_message = f"Нашел информацию, но не удалось открыть ссылку: {target_url}. Ошибка: {e}"
                 self.add_message_to_chat(error_message, "bot")
-                if self.voice_button_state: # Воспроизводим ошибку только если голос еще активен
+                if self.voice_button_state:
                     self.play_voice_assistant_speech(error_message)
-                self.voice_button_state = False # Отключаем, даже если ошибка
+                self.voice_button_state = False
         else:
-            # Если ссылка не найдена
             unknown_response = ("Извините, я не понял ваш запрос. Попробуйте переформулировать.")
             self.add_message_to_chat(unknown_response, "bot")
-            if self.voice_button_state: # Воспроизводим ответ голосом, только если голос активен
+            if self.voice_button_state:
                self.play_voice_assistant_speech(unknown_response)
 
     def add_message_to_chat(self, message, sender):
-        """Добавляет сообщение в область чата."""
+        "Добавляет сообщение в область чата."
         if sender == "bot":
             bot_label = QtWidgets.QLabel(message, self.scrollAreaWidgetContents_7)
             bot_label.setStyleSheet(
@@ -269,4 +236,3 @@ if __name__ == "__main__":
     main_window.show()
     exit_code = app.exec_()
     sys.exit(exit_code)
-
