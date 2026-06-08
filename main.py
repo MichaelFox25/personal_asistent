@@ -18,7 +18,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.responses = {
             "https://new.vyatsu.ru/sveden/document/": ["нормативные", "документы"],
             "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html": ["институты", "факультеты", "кафедры"],
-            "https://www.vyatsu.ru/contacts": ["контакты", "связ"],
+            "https://www.vyatsu.ru/contacts": ["контакты", "связь"],
             "https://www.vyatsu.ru/studentu-1/kto-est-kto-v-vyatgu.html": ["преподаватели", "сотрудники"],
             "https://new.vyatsu.ru/": ["поступление", "приемная", "абитуриентам"],
             "https://www.vyatsu.ru/internet-gazeta.html": ["новости", "газета"],
