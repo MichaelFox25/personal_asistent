@@ -10,7 +10,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
     def __init__(self):
         super(MyPersonalAssistantApp, self).__init__()
         self.setupUi(self)
-        self.add_message_to_chat("Привет! Чем могу помочь?", "bot")
+        self.add_message_to_chat("Привет! Можешь задать свой вопрос.", "bot")
         self.recognizer = speech_recognition.Recognizer()
         self.microphone = speech_recognition.Microphone()
         self.ttsEngine = pyttsx3.init()
@@ -177,7 +177,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         "Обрабатывает запрос и ищет ответ. Если запрос открывает сайт, гс ввод отключается."
         command = request.lower()
         if command in ["привет", "здравствуйте", "добрый день"]:
-            bot_response = "Здравствуйте! Чем могу помочь?"
+            bot_response = "Чем могу помочь?"
             self.add_message_to_chat(bot_response, "bot")
             self.play_voice_assistant_speech(bot_response)
             return
