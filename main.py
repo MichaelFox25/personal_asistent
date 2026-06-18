@@ -4,67 +4,42 @@ import speech_recognition
 import pyttsx3
 from PyQt5 import QtWidgets, QtCore, QtGui
 import ui_untitled
-from PyQt5.QtCore import QThreadPool
+from PyQt5.QtCore import QThreadPool, pyqtSignal
 
 class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssistant):
+    new_user_message = pyqtSignal(str)
+
     def __init__(self):
         super(MyPersonalAssistantApp, self).__init__()
         self.setupUi(self)
-        self.add_message_to_chat("Привет! Можешь задать свой вопрос.", "bot")
+        self.add_message_to_chat("Привет, можешь задать свой вопрос.", "bot")
         self.recognizer = speech_recognition.Recognizer()
         self.microphone = speech_recognition.Microphone()
         self.ttsEngine = pyttsx3.init()
         self.setup_tts()
         self.responses = {
-            "https://new.vyatsu.ru/sveden/document/": ["нормативные", "документы"],
-            "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html": ["институты", "факультеты", "кафедры"],
-            "https://www.vyatsu.ru/contacts": ["контакты", "связь"],
-            "https://www.vyatsu.ru/studentu-1/kto-est-kto-v-vyatgu.html": ["преподаватели", "сотрудники"],
-            "https://new.vyatsu.ru/": ["поступление", "приемная", "абитуриентам"],
-            "https://www.vyatsu.ru/internet-gazeta.html": ["новости", "газета"],
+            "https://new.vyatsu.ru/sveden/document/": ["нормативн", "документ"],
+            "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html": ["институт", "факультет", "кафедр"],
+            "https://www.vyatsu.ru/contacts": ["контакт", "связ"],
+            "https://www.vyatsu.ru/studentu-1/kto-est-kto-v-vyatgu.html": ["препод", "сотруд"],
+            "https://new.vyatsu.ru/": ["поступлен", "прием", "абитуриент"],
+            "https://www.vyatsu.ru/internet-gazeta.html": ["новост", "газет"],
             "https://www.vyatsu.ru/studentu-1/pervokursniku/adresa-i-telefonyi-uchebnyih-korpusov-fakul-tetov.html": ["корпус"],
-            "https://www.vyatsu.ru/studentu-1/spravochnaya-informatsiya/raspisanie.html": ["расписание"],
-            "https://www.vyatsu.ru/sotrudniku/doska/grafiki-uchebnogo-protsessa-na-2015-2016-uchebnyiy.html": ["учебный", "график"],
+            "https://www.vyatsu.ru/studentu-1/spravochnaya-informatsiya/raspisanie.html": ["расписани"],
+            "https://www.vyatsu.ru/sotrudniku/doska/grafiki-uchebnogo-protsessa-na-2015-2016-uchebnyiy.html": ["учебн", "график"],
             "https://www.vyatsu.ru/nash-universitet/obrazovatelnaya-deyatel-nost/kolledzh.html": ["колледж"]
         }
         self.voice_button_state = False
+        self.new_user_message.connect(self.add_user_message)
+
+    def add_user_message(self, message):
+        "добавления сообщения пользователя в чат"
+        self.add_message_to_chat(message, "user")
 
     def connect_input_actions(self):
         "Сигналы нажатия кнопок."
         self.pushButton_4.clicked.connect(self.add_text_to_scroll_area)
         self.toolButton_9.clicked.connect(self.toggle_voice_input)
-
-    def adjust_input_height(self):
-        "Регулятор высоты QTextEdit_input в зависимости от количества строк. Ограничение высоты между minimumHeight() и maximumHeight(), затем прокрутка."
-        doc = self.textEdit_input.document()
-        content_height = doc.size().height()
-        font_metrics = QtGui.QFontMetrics(self.textEdit_input.font())
-        line_height = font_metrics.height()
-        new_height = content_height
-        min_height = self.textEdit_input.minimumHeight()
-        max_height = self.textEdit_input.maximumHeight()
-        if content_height > max_height:
-            new_height = max_height
-            if self.textEdit_input.verticalScrollBarPolicy() != QtCore.Qt.ScrollBarAsNeeded:
-                self.textEdit_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        elif content_height < min_height:
-            new_height = min_height
-            if self.textEdit_input.verticalScrollBarPolicy() != QtCore.Qt.ScrollBarAlwaysOff:
-                self.textEdit_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        else:
-            if self.textEdit_input.verticalScrollBarPolicy() != QtCore.Qt.ScrollBarAlwaysOff:
-                self.textEdit_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.textEdit_input.setFixedHeight(new_height)
-        self.adjust_send_button_position()
-
-    def adjust_send_button_position(self):
-        "Позиция кнопки отправки и связанных элементов. На одном уровне с inputText."
-        input_rect = self.textEdit_input.geometry()
-        self.pushButton_4.move(
-            self.pushButton_4.x(),
-            input_rect.y() + (input_rect.height() - self.pushButton_4.height()) // 2
-        )
-        self.frame_10.adjustSize()
 
     def add_text_to_scroll_area(self):
         "При нажатии на pushButton_4, берет текст из textEdit_input, создает QLabel с текстом внутри scrollAreaWidgetContents_7,стилизует его и добавляет в вертикальный макет."
@@ -95,7 +70,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if ru_voice_id is not None:
             self.ttsEngine.setProperty('voice', ru_voice_id)
         else:
-            self.add_message_to_chat("Языковой файл для русского языка не найден. Проверьте настройки ашего устройства", "bot")
+            self.add_message_to_chat("Языковой файл для русского языка не найден. Проверьте настройки вашего устройства", "bot")
 
     def toggle_voice_button_border(self, state):
         "Нажатие на кнопку голоса"
@@ -117,7 +92,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
     def toggle_voice_input(self):
         "Обработка нажатия на кнопку голоса для нанала/остановки запись. Гс активируется при 1 нажатии и отключается при повторном."
         self.voice_button_state = not self.voice_button_state
-        self.toggle_voice_button_border(self.voice_button_state)
+        self.toolButton_9.setChecked(self.voice_button_state)
         if self.voice_button_state:
             message = "Голосовой ввод активирован. Чем могу помочь?"
             self.add_message_to_chat(message, "bot")
@@ -147,7 +122,14 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             try:
                 if audio:
                     recognized_data = self.recognizer.recognize_google(audio, language="ru").lower()
-                    self.process_user_request(recognized_data)
+                    if recognized_data:
+                        recognized_data = recognized_data[0].upper() + recognized_data[1:]
+                        self.new_user_message.emit(recognized_data)
+                        self.process_user_request(recognized_data)
+                    else:
+                        self.add_message_to_chat(error_message, "bot")
+                        self.play_voice_assistant_speech(error_message)
+                        self.scroll_to_bottom()
             except speech_recognition.UnknownValueError:
                 self.add_message_to_chat(error_message, "bot")
                 self.play_voice_assistant_speech(error_message)
@@ -160,7 +142,6 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
                 break
         if not self.voice_button_state:
             self.add_message_to_chat("Голосовой ввод отключен.", "bot")
-            self.toggle_voice_button_border(False)
             self.scroll_to_bottom()
 
     def play_voice_assistant_speech(self, text_to_speech):
@@ -174,12 +155,20 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
                 print(f"Ошибка воспроизведения речи: {e}")
 
     def process_user_request(self, request):
-        "Обрабатывает запрос и ищет ответ. Если запрос открывает сайт, гс ввод отключается."
-        command = request.lower()
-        if command in ["привет", "здравствуйте", "добрый день"]:
+        """Обрабатывает запрос и ищет ответ. Если запрос открывает сайт, гс ввод отключается."""
+        command = request.lower().strip()
+        greetings = ["привет", "здравствуй", "добр"]
+        if any(g in command for g in greetings):
             bot_response = "Чем могу помочь?"
             self.add_message_to_chat(bot_response, "bot")
             self.play_voice_assistant_speech(bot_response)
+            return
+        farewells = ["пока", "до свидания", "выход", "закр", "стоп"]
+        if any(f in command for f in farewells):
+            bot_response = "До свидания!"
+            self.add_message_to_chat(bot_response, "bot")
+            self.play_voice_assistant_speech(bot_response)
+            QtCore.QTimer.singleShot(1000, self.close)
             return
         found_link = False
         target_url = None
@@ -197,37 +186,41 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
                 response_message = "Нашел информацию. Открываю."
                 self.add_message_to_chat(response_message, "bot")
                 self.voice_button_state = False
+                self.toolButton_9.setChecked(False)
             except Exception as e:
                 error_message = f"Нашел информацию, но не удалось открыть ссылку: {target_url}. Ошибка: {e}"
                 self.add_message_to_chat(error_message, "bot")
                 if self.voice_button_state:
                     self.play_voice_assistant_speech(error_message)
                 self.voice_button_state = False
+                self.toolButton_9.setChecked(False)
         else:
-            unknown_response = ("Извините, я не понял ваш запрос. Попробуйте переформулировать.")
+            unknown_response = "Извините, я не понял ваш запрос. Попробуйте переформулировать."
             self.add_message_to_chat(unknown_response, "bot")
             if self.voice_button_state:
-               self.play_voice_assistant_speech(unknown_response)
+                self.play_voice_assistant_speech(unknown_response)
 
     def add_message_to_chat(self, message, sender):
-        "Добавляет сообщение в область чата."
+        """Добавляет сообщение в область чата."""
         if sender == "bot":
-            bot_label = QtWidgets.QLabel(message, self.scrollAreaWidgetContents_7)
-            bot_label.setStyleSheet(
-                "padding: 10px; margin: 5px; border-radius: 5px; background-color: #f0f0f0; color: #333;"
-            )
-            bot_label.setWordWrap(True)
-            bot_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            self.vertical_layout.addWidget(bot_label)
-            self.scroll_to_bottom()
+            style = "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #f0f0f0; color: #333;}"
         elif sender == "user":
-            user_text = QtWidgets.QLabel(message, self.scrollAreaWidgetContents_7)
-            user_text.setStyleSheet(
-                "padding: 10px; margin: 5px; border-radius: none; background-color: #fff; color: #00401E;"
-            )
-            user_text.setWordWrap(True)
-            user_text.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            self.vertical_layout.addWidget(user_text)
+            style = "QLabel { padding: 10px; margin: 5px; border-radius: 15px; background-color: #fff; color: #00401E;}"
+        else:
+            return  # или обработать неизвестный sender
+        label = QtWidgets.QLabel(message, self.scrollAreaWidgetContents_7)
+        label.setStyleSheet(style)
+        label.setWordWrap(True)
+        label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.vertical_layout.addWidget(label)
+        self.scroll_to_bottom()
+        self.scrollAreaWidgetContents_7.update()
+
+    def closeEvent(self, event):
+        "зкрытие окна"
+        self.voice_button_state = False
+        self.ttsEngine.stop()
+        event.accept()
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
