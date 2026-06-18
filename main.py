@@ -12,7 +12,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.add_message_chat("Привет, можешь задать свой вопрос.", "bot")
+        self.add_messg_chat("Привет, можешь задать свой вопрос.", "bot")
         self.recognizer = speech_recognition.Recognizer()
         self.microphone = speech_recognition.Microphone()
         self.ttsEngine = pyttsx3.init()
@@ -55,7 +55,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         "добавление текста в область прокрутки (поиск и отчистка)"
         text = self.textEdit_input.toPlainText().strip()
         if text:
-            self.add_message_chat(text, "user")
+            self.add_messg_chat(text, "user")
             self.process_user_request(text)
             self.textEdit_input.clear()
 
@@ -63,10 +63,10 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         "вывод голосовых запросов пользователя"
         if not message:
             return
-        self.add_message_chat(message, "user")
+        self.add_messg_chat(message, "user")
         self.process_user_request(message)
 
-    def add_message_chat(self, message, sender):
+    def add_messg_chat(self, message, sender):
         "стиль в зависимости от отправителя"
         if sender == "bot":
             style = "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #f0f0f0; color: #333;}"
@@ -79,13 +79,13 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         label.setWordWrap(True)
         label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.vertical_layout.addWidget(label)
-        QTimer.singleShot(50, self.scroll_bottom)
+        QTimer.singleShot(0, self.scroll_bottom)
 
     def scroll_bottom(self):
         "прокрутка вниз"
-        if self.scrollAreaWidgetContents_7.layout():
-            self.scrollAreaWidgetContents_7.layout().activate()
-            self.scrollAreaWidgetContents_7.updateGeometry()
+        self.scrollAreaWidgetContents_7.updateGeometry()
+        self.scrollArea.update()
+        QtWidgets.QApplication.processEvents()
         sb = self.scrollArea.verticalScrollBar()
         sb.setValue(sb.maximum())
 
@@ -97,7 +97,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             if 'ru' in str(voice.languages).lower() or 'russian' in voice.name.lower():
                 self.ttsEngine.setProperty('voice', voice.id)
                 return
-        self.add_message_chat("Языковой файл для русского языка не найден. Проверьте настройки вашего устройства","bot")
+        self.add_messg_chat("Языковой файл для русского языка не найден. Проверьте настройки вашего устройства","bot")
 
     def play_v_assistant_speech(self, text):
         "речь ассистента"
@@ -114,11 +114,11 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.toolButton_9.setChecked(self.voice_button_state)
         if self.voice_button_state:
             msg = "Голосовой ввод активирован. Чем могу помочь?"
-            self.add_message_chat(msg, "bot")
+            self.add_messg_chat(msg, "bot")
             self.play_v_assistant_speech(msg)
             QThreadPool.globalInstance().start(self.record_recognize_audio_threaded)
         else:
-            self.add_message_chat("Голосовой ввод отключен.", "bot")
+            self.add_messg_chat("Голосовой ввод отключен.", "bot")
 
     def record_recognize_audio_threaded(self):
         "запись и распознавание речи (Выполняется в отдельном потоке)"
@@ -149,16 +149,14 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
     def process_user_request(self, request):
         "обработка запроса пользователя и поиск ответа."
         command = request.lower().strip()
-        if not command:
-            return
         if command in ["привет", "здравствуйте", "добрый день"]:
             bot_response = "Чем могу помочь?"
-            self.add_message_chat(bot_response, "bot")
+            self.add_messg_chat(bot_response, "bot")
             self.play_v_assistant_speech(bot_response)
             return
         if command in ["пока", "до свидания", "выход", "закр", "стоп"]:
             bot_response = "До свидания"
-            self.add_message_chat(bot_response, "bot")
+            self.add_messg_chat(bot_response, "bot")
             self.play_v_assistant_speech(bot_response)
             if self.voice_button_state:
                 self.voice_button_state = False
@@ -174,20 +172,20 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if target_url:
             try:
                 webbrowser.open(target_url, new=2, autoraise=True)
-                self.add_message_chat("Нашел информацию. Открываю.", "bot")
+                self.add_messg_chat("Нашел информацию. Открываю.", "bot")
                 if self.voice_button_state:
                     self.voice_button_state = False
                     self.toolButton_9.setChecked(False)
             except Exception as e:
                 err = f"Не удалось открыть ссылку: {target_url}. Ошибка: {e}"
-                self.add_message_chat(err, "bot")
+                self.add_messg_chat(err, "bot")
                 if self.voice_button_state:
                     self.play_v_assistant_speech(err)
                     self.voice_button_state = False
                     self.toolButton_9.setChecked(False)
         else:
             reply = "Извините, я не понял ваш запрос. Попробуйте переформулировать."
-            self.add_message_chat(reply, "bot")
+            self.add_messg_chat(reply, "bot")
             if self.voice_button_state:
                 self.play_v_assistant_speech(reply)
 
