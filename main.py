@@ -79,16 +79,15 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         label.setWordWrap(True)
         label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.vertical_layout.addWidget(label)
-        QTimer.singleShot(100, self.scroll_bottom)
+        QTimer.singleShot(50, self.scroll_bottom)
 
     def scroll_bottom(self):
         "прокрутка вниз"
         if self.scrollAreaWidgetContents_7.layout():
             self.scrollAreaWidgetContents_7.layout().activate()
             self.scrollAreaWidgetContents_7.updateGeometry()
-        self.scrollArea.verticalScrollBar().setValue(
-            self.scrollArea.verticalScrollBar().maximum()
-        )
+        sb = self.scrollArea.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
     def setup_tts(self):
         "настройка ттс (Text‑to‑Speech)"
@@ -122,7 +121,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.add_message_chat("Голосовой ввод отключен.", "bot")
 
     def record_recognize_audio_threaded(self):
-        "Запись и распознавание речи (Выполняется в отдельном потоке)"
+        "запись и распознавание речи (Выполняется в отдельном потоке)"
         while self.voice_button_state:
             try:
                 with self.microphone as source:
@@ -133,12 +132,15 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             except Exception as e:
                 print(f"Ошибка записи: {e}")
                 break
+            if not self.voice_button_state:
+                break
             try:
                 if audio:
                     recognized = self.recognizer.recognize_google(audio, language="ru").lower()
                     if recognized:
                         recognized = recognized[0].upper() + recognized[1:]
-                        self.new_user_message.emit(recognized)
+                        if self.voice_button_state:
+                            self.new_user_message.emit(recognized)
             except speech_recognition.UnknownValueError:
                 pass
             except Exception as e:
@@ -149,19 +151,19 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         command = request.lower().strip()
         if not command:
             return
-        if any(w in command for w in ["привет", "здравствуй", "добр"]):
-            reply = "Чем могу помочь?"
-            self.add_message_chat(reply, "bot")
-            self.play_v_assistant_speech(reply)
+        if command in ["привет", "здравствуйте", "добрый день"]:
+            bot_response = "Чем могу помочь?"
+            self.add_message_chat(bot_response, "bot")
+            self.play_v_assistant_speech(bot_response)
             return
-        if any(w in command for w in ["пока", "до свидания", "выход", "закр", "стоп"]):
-            reply = "До свидания!"
-            self.add_message_chat(reply, "bot")
+        if command in ["пока", "до свидания", "выход", "закр", "стоп"]:
+            bot_response = "До свидания"
+            self.add_message_chat(bot_response, "bot")
+            self.play_v_assistant_speech(bot_response)
             if self.voice_button_state:
                 self.voice_button_state = False
                 self.toolButton_9.setChecked(False)
-            self.play_v_assistant_speech(reply)
-            QTimer.singleShot(500, self.close)
+            QTimer.singleShot(750, self.close)
             return
 
         target_url = None
