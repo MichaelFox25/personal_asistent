@@ -230,7 +230,7 @@ class Ui_PersonalAssistant(object):
         self.pushButton_4.setAutoDefault(False)
         self.pushButton_4.setDefault(False)
         self.pushButton_4.setFlat(False)
-        self.pushButton_4.clicked.connect(self.add_text_to_scroll_area)
+        self.pushButton_4.clicked.connect(self.add_t_scroll_area)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("Send.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.pushButton_4.setProperty("1", icon)
@@ -322,7 +322,7 @@ class Ui_PersonalAssistant(object):
         self.retranslateUi(PersonalAssistant)
         QtCore.QMetaObject.connectSlotsByName(PersonalAssistant)
 
-        self.toolButton_9.toggled.connect(self.toggle_voice_button_border)
+        self.toolButton_9.toggled.connect(self.toggle_v_button)
         self.toolButton_9.setCheckable(True)
 
     def retranslateUi(self, PersonalAssistant):

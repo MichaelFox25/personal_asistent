@@ -19,10 +19,10 @@ if ru_voice_id is not None:
 else:
     print('Русский голос не найден. Установите русский голос в вашей системе.')
 engine.runAndWait()
-def play_voice_assistant_speech(text_to_speech):
+def play_v_assistant_speech(text_to_speech):
     ttsEngine.say(str(text_to_speech))
     ttsEngine.runAndWait()
-def record_and_recognize_audio(*args: tuple):
+def record_recognize_audio(*args: tuple):
     with microphone:
         recognized_data = ""
         recognizer.adjust_for_ambient_noise(microphone, duration=2)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     microphone = speech_recognition.Microphone()
     ttsEngine = pyttsx3.init()
     while True:
-        voice_input = record_and_recognize_audio()
+        voice_input = record_recognize_audio()
         print (voice_input)
         command = voice_input
         if command == "привет":
@@ -56,29 +56,29 @@ if __name__ == "__main__":
             engine.say("открываю сайт")
             webbrowser.open ('https://new.vyatsu.ru/')
         if command == "открой нормативные акты":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://new.vyatsu.ru/sveden/document/')
         if command == "расскажи про институты факультеты и кафедры":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html')
         if command == "контакты":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/contacts')
         if command == "расскажи про преподавателей":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/studentu-1/kto-est-kto-v-vyatgu.html')
         if command == "какие новости":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/internet-gazeta.html')
         if command == "покажи расположение корпусов":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/studentu-1/pervokursniku/adresa-i-telefonyi-uchebnyih-korpusov-fakul-tetov.html')
         if command == "покажи расписание":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/studentu-1/spravochnaya-informatsiya/raspisanie.html')
         if command == "покажи календарный учебный график":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/sotrudniku/doska/grafiki-uchebnogo-protsessa-na-2015-2016-uchebnyiy.html')
         if command == "расскажи про колледж":
-            play_voice_assistant_speech("открываю сайт")
+            play_v_assistant_speech("открываю сайт")
             webbrowser.open('https://www.vyatsu.ru/nash-universitet/obrazovatelnaya-deyatel-nost/kolledzh. html')
