@@ -350,13 +350,3 @@ class Ui_PersonalAssistant(object):
         self.label_62.setText(_translate("PersonalAssistant", "Новости"))
         self.label_63.setText(_translate("PersonalAssistant", "Нормативные документы"))
         self.label_64.setText(_translate("PersonalAssistant", "Календарный учебный график"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    PersonalAssistant = QtWidgets.QMainWindow()
-    ui = Ui_PersonalAssistant()
-    ui.setupUi(PersonalAssistant)
-    PersonalAssistant.show()
-    sys.exit(app.exec_())

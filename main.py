@@ -1,10 +1,54 @@
 import sys
 import webbrowser
 import speech_recognition
-import pyttsx3
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore
 import ui_untitled
-from PyQt5.QtCore import QThreadPool, pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSignal, QTimer, pyqtSlot
+import playsound3
+from gtts import gTTS
+import tempfile
+import os
+
+class VoiceRecognitionWorker(QtCore.QObject):
+    message = pyqtSignal(str)
+
+    def __init__(self, recognizer, microphone):
+        super().__init__()
+        self.recognizer = recognizer
+        self.microphone = microphone
+        self._is_running = True
+
+    def stop(self):
+        self._is_running = False
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            with self.microphone as source:
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+        except Exception as e:
+            print(f"Ошибка настройки шумоподавления: {e}")
+            return
+        while self._is_running:
+            try:
+                with self.microphone as source:
+                    audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
+            except speech_recognition.WaitTimeoutError:
+                continue
+            except Exception as e:
+                print(f"Ошибка записи: {e}")
+                break
+            if not self._is_running:
+                break
+            try:
+                recognized = self.recognizer.recognize_google(audio, language="ru").lower()
+                if recognized:
+                    recognized = recognized[0].upper() + recognized[1:]
+                    self.message.emit(recognized)
+            except speech_recognition.UnknownValueError:
+                pass
+            except Exception as e:
+                print(f"Ошибка распознавания: {e}")
 
 class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssistant):
     new_user_message = pyqtSignal(str)
@@ -15,8 +59,6 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.add_messg_chat("Привет, можешь задать свой вопрос.", "bot")
         self.recognizer = speech_recognition.Recognizer()
         self.microphone = speech_recognition.Microphone()
-        self.ttsEngine = pyttsx3.init()
-        self.setup_tts()
         self.responses = {
             "https://new.vyatsu.ru/sveden/document/": ["нормативн", "документ"],
             "https://www.vyatsu.ru/studentu-1/nauka-i-praktika.html": ["институт", "факультет", "кафедр"],
@@ -33,6 +75,8 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.new_user_message.connect(self.receiving_user_v_messg)
         self.pushButton_4.clicked.connect(self.add_t_scroll_area)
         self.toolButton_9.clicked.connect(self.toggle_v_input)
+        self.voice_thread = None
+        self.voice_worker = None
 
     def toggle_v_button(self, state):
         "нажатие на кнопку голоса (визуал)"
@@ -89,79 +133,69 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         sb = self.scrollArea.verticalScrollBar()
         sb.setValue(sb.maximum())
 
-    def setup_tts(self):
-        "настройка ттс (Text‑to‑Speech)"
-        self.ttsEngine.setProperty('rate', 175)
-        voices = self.ttsEngine.getProperty('voices')
-        for voice in voices:
-            if 'ru' in str(voice.languages).lower() or 'russian' in voice.name.lower():
-                self.ttsEngine.setProperty('voice', voice.id)
-                return
-        self.add_messg_chat("Языковой файл для русского языка не найден. Проверьте настройки вашего устройства","bot")
-
     def play_v_assistant_speech(self, text):
         "речь ассистента"
         if text and self.voice_button_state:
             try:
-                self.ttsEngine.say(str(text))
-                self.ttsEngine.runAndWait()
+                tts = gTTS(text=text, lang='ru')
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as f:
+                    tts.save(f.name)
+                    temp_filename = f.name
+                sound = playsound3.playsound(temp_filename, block=False)
+                while sound.is_alive():
+                    QtCore.QThread.msleep(180)
+                os.unlink(temp_filename)
             except Exception as e:
-                print(f"TTS error: {e}")
+                print(f"Ошибка синтеза речи: {e}")
 
     def toggle_v_input(self):
-        "переключение голосового ввода гс активируется при 1 нажатии и отключается при повторном."
-        self.voice_button_state = not self.voice_button_state
-        self.toolButton_9.setChecked(self.voice_button_state)
         if self.voice_button_state:
+            msg = "Голосовой ввод отключен."
+            self.add_messg_chat(msg, "bot")
+            self.voice_button_state = False
+            self.toolButton_9.setChecked(False)
+            if self.voice_worker:
+                self.voice_worker.stop()
+                if self.voice_thread and self.voice_thread.isRunning():
+                    self.voice_thread.quit()
+                    self.voice_thread.wait()
+        else:
+            self.voice_button_state = True
+            self.toolButton_9.setChecked(True)
             msg = "Голосовой ввод активирован. Чем могу помочь?"
             self.add_messg_chat(msg, "bot")
+            self.scroll_bottom()  # немедленная прокрутка
+            QtWidgets.QApplication.processEvents()  # обновление интерфейса
             self.play_v_assistant_speech(msg)
-            QThreadPool.globalInstance().start(self.record_recognize_audio_threaded)
-        else:
-            self.add_messg_chat("Голосовой ввод отключен.", "bot")
 
-    def record_recognize_audio_threaded(self):
-        "запись и распознавание речи (Выполняется в отдельном потоке)"
-        while self.voice_button_state:
-            try:
-                with self.microphone as source:
-                    self.recognizer.adjust_for_ambient_noise(source, duration=1)
-                    audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-            except speech_recognition.WaitTimeoutError:
-                continue
-            except Exception as e:
-                print(f"Ошибка записи: {e}")
-                break
-            if not self.voice_button_state:
-                break
-            try:
-                if audio:
-                    recognized = self.recognizer.recognize_google(audio, language="ru").lower()
-                    if recognized:
-                        recognized = recognized[0].upper() + recognized[1:]
-                        if self.voice_button_state:
-                            self.new_user_message.emit(recognized)
-            except speech_recognition.UnknownValueError:
-                pass
-            except Exception as e:
-                print(f"Ошибка распознавания: {e}")
+            self.voice_thread = QtCore.QThread()
+            self.voice_worker = VoiceRecognitionWorker(self.recognizer, self.microphone)
+            self.voice_worker.moveToThread(self.voice_thread)
+            self.voice_worker.message.connect(self.new_user_message.emit)
+            self.voice_thread.started.connect(self.voice_worker.run)
+            self.voice_thread.finished.connect(self.voice_worker.deleteLater)
+            self.voice_thread.start()
+
+    def reply(self, text, turn_off_voice=False):
+        "Ответ бота и его озвучка"
+        self.add_messg_chat(text, "bot")
+        self.scroll_bottom()
+        QtWidgets.QApplication.processEvents()
+        if self.voice_button_state:
+            self.play_v_assistant_speech(text)
+            if turn_off_voice:
+                self.voice_button_state = False
+                self.toolButton_9.setChecked(False)
 
     def process_user_request(self, request):
         "обработка запроса пользователя и поиск ответа."
         command = request.lower().strip()
         if command in ["привет", "здравствуйте", "добрый день"]:
-            bot_response = "Чем могу помочь?"
-            self.add_messg_chat(bot_response, "bot")
-            self.play_v_assistant_speech(bot_response)
+            self.reply("Чем могу помочь?")
             return
-        if command in ["пока", "до свидания", "выход", "закр", "стоп"]:
-            bot_response = "До свидания"
-            self.add_messg_chat(bot_response, "bot")
-            self.play_v_assistant_speech(bot_response)
-            if self.voice_button_state:
-                self.voice_button_state = False
-                self.toolButton_9.setChecked(False)
-            QTimer.singleShot(750, self.close)
+        if command in ["пока", "до свидания", "выход", "стоп"]:
+            self.reply("До свидания", turn_off_voice=True)
+            self.close()
             return
 
         target_url = None
@@ -172,30 +206,23 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if target_url:
             try:
                 webbrowser.open(target_url, new=2, autoraise=True)
-                self.add_messg_chat("Нашел информацию. Открываю.", "bot")
-                if self.voice_button_state:
-                    self.voice_button_state = False
-                    self.toolButton_9.setChecked(False)
+                self.reply("Нашел информацию. Открываю.", turn_off_voice=True)
             except Exception as e:
                 err = f"Не удалось открыть ссылку: {target_url}. Ошибка: {e}"
                 self.add_messg_chat(err, "bot")
                 if self.voice_button_state:
-                    self.play_v_assistant_speech(err)
-                    self.voice_button_state = False
-                    self.toolButton_9.setChecked(False)
+                    self.play_v_assistant_speech("Не удалось открыть ссылку")
         else:
-            reply = "Извините, я не понял ваш запрос. Попробуйте переформулировать."
-            self.add_messg_chat(reply, "bot")
-            if self.voice_button_state:
-                self.play_v_assistant_speech(reply)
+            self.reply("Извините, я не понял ваш запрос. Попробуйте переформулировать.")
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         "закрытие"
         self.voice_button_state = False
-        try:
-            self.ttsEngine.stop()
-        except:
-            pass
+        if self.voice_worker:
+            self.voice_worker.stop()  # останавливаем воркер
+        if self.voice_thread and self.voice_thread.isRunning():
+            self.voice_thread.quit()
+            self.voice_thread.wait()
         event.accept()
 
 if __name__ == "__main__":
