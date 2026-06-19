@@ -87,12 +87,17 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if state:
             self.frame_14.setStyleSheet(
                 "background-color: #0D6D50; border-radius: 35px; border: 3px solid green; padding: 0px;")
-            self.label_2.setStyleSheet("padding: 4px; border: none;")
-            self.toolButton_9.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+            self.label_2.setStyleSheet(
+                "padding: 4px; border: none;")
+            self.toolButton_9.setStyleSheet(
+                "background-color: rgba(255, 255, 255, 0);")
         else:
-            self.frame_14.setStyleSheet("border-radius: 40px; border: none;")
-            self.label_2.setStyleSheet("padding: 0;")
-            self.toolButton_9.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+            self.frame_14.setStyleSheet(
+                "border-radius: 40px; border: none;")
+            self.label_2.setStyleSheet(
+                "padding: 0;")
+            self.toolButton_9.setStyleSheet(
+                "background-color: rgba(255, 255, 255, 0);")
 
     def add_messg_chat(self, message, sender):
         "стили в зависимости от отправителя"
@@ -240,14 +245,14 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if target_url:
             try:
                 webbrowser.open(target_url, new=2, autoraise=True)
-                self.reply("Нашел информацию. Открываю.", turn_off_voice=True)
+                self.reply("Нашла информацию. Открываю.", turn_off_voice=True)
             except Exception as e:
                 err = f"Не удалось открыть ссылку: {target_url}. Ошибка: {e}"
                 self.add_messg_chat(err, "bot")
                 if self.voice_button_state:
                     self.play_v_assistant_speech("Не удалось открыть ссылку")
         else:
-            self.reply("Извините, я не понял ваш запрос. Попробуйте переформулировать.")
+            self.reply("Извините, я не поняла ваш запрос. Попробуйте переформулировать.")
 
     def closeEvent(self, event):
         "закрытие"
