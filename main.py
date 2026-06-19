@@ -20,7 +20,6 @@ class VoiceRecognitionWorker(QtCore.QObject):
     def stop(self):
         self._is_running = False
 
-    @pyqtSlot()
     def run(self):
         try:
             with self.microphone as source:
@@ -134,9 +133,11 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.add_messg_chat(text, "user")
         self.process_user_request(text)
 
-    def _play_speech(self, text):
-        "речь ассистента (не зависит от voice_button_state)."
+    def play_speech(self, text, force=False):
+        "речь ассистента"
         if not text:
+            return
+        if not force and not self.voice_button_state:
             return
         try:
             tts = gTTS(text=text, lang='ru')
@@ -148,11 +149,6 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.media_player.play()
         except Exception as e:
             print(f"Ошибка синтеза речи: {e}")
-
-    def play_v_assistant_speech(self, text):
-        "речь ассистента (голосовой ввод включён)"
-        if self.voice_button_state:
-            self._play_speech(text)
 
     @pyqtSlot(QtMultimedia.QMediaPlayer.MediaStatus)
     def on_media_status_changed(self, status):
@@ -183,7 +179,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.add_messg_chat(msg, "bot")
             self.scroll_bottom()
             QtWidgets.QApplication.processEvents()
-            self._play_speech(msg)
+            self.play_speech(msg, force=True)
             self.toolButton_9.setChecked(False)
             return
         self.voice_button_state = True
@@ -192,7 +188,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.add_messg_chat(msg, "bot")
         self.scroll_bottom()
         QtWidgets.QApplication.processEvents()
-        self.play_v_assistant_speech(msg)
+        self.play_speech(msg)
         self.voice_thread = QtCore.QThread()
         self.voice_worker = VoiceRecognitionWorker(self.recognizer, self.microphone)
         self.voice_worker.moveToThread(self.voice_thread)
@@ -220,10 +216,9 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.add_messg_chat(text, "bot")
         self.scroll_bottom()
         QtWidgets.QApplication.processEvents()
-        if self.voice_button_state:
-            self.play_v_assistant_speech(text)
-            if turn_off_voice:
-                self.stop_v_input()
+        self.play_speech(text)
+        if turn_off_voice:
+            self.stop_v_input()
 
     def process_user_request(self, request):
         "обработка запроса пользователя и поиск ответа."
@@ -249,8 +244,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             except Exception as e:
                 err = f"Не удалось открыть ссылку: {target_url}. Ошибка: {e}"
                 self.add_messg_chat(err, "bot")
-                if self.voice_button_state:
-                    self.play_v_assistant_speech("Не удалось открыть ссылку")
+                self.play_speech("Не удалось открыть ссылку")
         else:
             self.reply("Извините, я не поняла ваш запрос. Попробуйте переформулировать.")
 
