@@ -1,13 +1,12 @@
 import sys
 import webbrowser
 import speech_recognition
-from PyQt5 import QtWidgets, QtCore
-import ui_untitled
-from PyQt5.QtCore import pyqtSignal, QTimer, pyqtSlot
-import playsound3
-from gtts import gTTS
+from PyQt5 import QtWidgets, QtCore, QtMultimedia
+from PyQt5.QtCore import pyqtSignal, QTimer, pyqtSlot, QUrl
 import tempfile
 import os
+from gtts import gTTS
+import ui_untitled
 
 class VoiceRecognitionWorker(QtCore.QObject):
     message = pyqtSignal(str)
@@ -32,7 +31,7 @@ class VoiceRecognitionWorker(QtCore.QObject):
         while self._is_running:
             try:
                 with self.microphone as source:
-                    audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
+                    audio = self.recognizer.listen(source, timeout=2, phrase_time_limit=10)
             except speech_recognition.WaitTimeoutError:
                 continue
             except Exception as e:
@@ -49,6 +48,7 @@ class VoiceRecognitionWorker(QtCore.QObject):
                 pass
             except Exception as e:
                 print(f"Ошибка распознавания: {e}")
+
 
 class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssistant):
     new_user_message = pyqtSignal(str)
@@ -72,54 +72,38 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             "https://www.vyatsu.ru/nash-universitet/obrazovatelnaya-deyatel-nost/kolledzh.html": ["колледж"]
         }
         self.voice_button_state = False
-        self.new_user_message.connect(self.receiving_user_v_messg)
+        self.new_user_message.connect(self.handle_user_messg)
         self.pushButton_4.clicked.connect(self.add_t_scroll_area)
         self.toolButton_9.clicked.connect(self.toggle_v_input)
+        self.toolButton_9.setCheckable(True)
         self.voice_thread = None
         self.voice_worker = None
+        self.media_player = QtMultimedia.QMediaPlayer()
+        self.media_player.mediaStatusChanged.connect(self.on_media_status_changed)
+        self.temp_audio_file = None
 
     def toggle_v_button(self, state):
         "нажатие на кнопку голоса (визуал)"
         if state:
             self.frame_14.setStyleSheet(
                 "background-color: #0D6D50; border-radius: 35px; border: 3px solid green; padding: 0px;")
-            self.label_2.setStyleSheet(
-                "padding: 4px; border: none;")
-            self.toolButton_9.setStyleSheet(
-                "background-color: rgba(255, 255, 255, 0);")
+            self.label_2.setStyleSheet("padding: 4px; border: none;")
+            self.toolButton_9.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
         else:
-            self.frame_14.setStyleSheet(
-                "border-radius: 40px; border: none;")
-            self.label_2.setStyleSheet(
-                "padding: 0;")
-            self.toolButton_9.setStyleSheet(
-                "background-color: rgba(255, 255, 255, 0);")
-
-    def add_t_scroll_area(self):
-        "добавление текста в область прокрутки (поиск и отчистка)"
-        text = self.textEdit_input.toPlainText().strip()
-        if text:
-            self.add_messg_chat(text, "user")
-            self.process_user_request(text)
-            self.textEdit_input.clear()
-
-    def receiving_user_v_messg(self, message):
-        "вывод голосовых запросов пользователя"
-        if not message:
-            return
-        self.add_messg_chat(message, "user")
-        self.process_user_request(message)
+            self.frame_14.setStyleSheet("border-radius: 40px; border: none;")
+            self.label_2.setStyleSheet("padding: 0;")
+            self.toolButton_9.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
     def add_messg_chat(self, message, sender):
         "стиль в зависимости от отправителя"
-        if sender == "bot":
-            style = "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #f0f0f0; color: #333;}"
-        elif sender == "user":
-            style = "QLabel { padding: 10px; margin: 5px; border-radius: 15px; background-color: #fff; color: #00401E;}"
-        else:
+        styles = {
+            "bot": "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #f0f0f0; color: #333;}",
+            "user": "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #fff; color: #00401E;}"
+        }
+        if sender not in styles:
             return
         label = QtWidgets.QLabel(message, self.scrollAreaWidgetContents_7)
-        label.setStyleSheet(style)
+        label.setStyleSheet(styles[sender])
         label.setWordWrap(True)
         label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.vertical_layout.addWidget(label)
@@ -133,48 +117,82 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         sb = self.scrollArea.verticalScrollBar()
         sb.setValue(sb.maximum())
 
+    def add_t_scroll_area(self):
+        "обработка текста/запроса пользователя"
+        text = self.textEdit_input.toPlainText().strip()
+        if text:
+            self.handle_user_messg(text)
+            self.textEdit_input.clear()
+
+    def handle_user_messg(self, text):
+        "вывод и обработка запросов пользователя"
+        self.add_messg_chat(text, "user")
+        self.process_user_request(text)
+
     def play_v_assistant_speech(self, text):
         "речь ассистента"
-        if text and self.voice_button_state:
-            try:
-                tts = gTTS(text=text, lang='ru')
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as f:
-                    tts.save(f.name)
-                    temp_filename = f.name
-                sound = playsound3.playsound(temp_filename, block=False)
-                while sound.is_alive():
-                    QtCore.QThread.msleep(180)
-                os.unlink(temp_filename)
-            except Exception as e:
-                print(f"Ошибка синтеза речи: {e}")
+        if not (text and self.voice_button_state):
+            return
+        try:
+            tts = gTTS(text=text, lang='ru')
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as f:
+                tts.save(f.name)
+                self.temp_audio_file = f.name
+            url = QUrl.fromLocalFile(self.temp_audio_file)
+            self.media_player.setMedia(QtMultimedia.QMediaContent(url))
+            self.media_player.play()
+        except Exception as e:
+            print(f"Ошибка синтеза речи: {e}")
+
+    @pyqtSlot(QtMultimedia.QMediaPlayer.MediaStatus)
+    def on_media_status_changed(self, status):
+        "удаление временного мп3 файла речи бота"
+        if status == QtMultimedia.QMediaPlayer.EndOfMedia:
+            self.media_player.stop()
+            if self.temp_audio_file and os.path.exists(self.temp_audio_file):
+                try:
+                    os.unlink(self.temp_audio_file)
+                except Exception as e:
+                    print(f"Ошибка удаления временного файла: {e}")
+                self.temp_audio_file = None
 
     def toggle_v_input(self):
+        "обработка нажатия на микрофон"
         if self.voice_button_state:
-            msg = "Голосовой ввод отключен."
-            self.add_messg_chat(msg, "bot")
-            self.voice_button_state = False
-            self.toolButton_9.setChecked(False)
-            if self.voice_worker:
-                self.voice_worker.stop()
-                if self.voice_thread and self.voice_thread.isRunning():
-                    self.voice_thread.quit()
-                    self.voice_thread.wait()
+            self.stop_v_input()
         else:
-            self.voice_button_state = True
-            self.toolButton_9.setChecked(True)
-            msg = "Голосовой ввод активирован. Чем могу помочь?"
-            self.add_messg_chat(msg, "bot")
-            self.scroll_bottom()  # немедленная прокрутка
-            QtWidgets.QApplication.processEvents()  # обновление интерфейса
-            self.play_v_assistant_speech(msg)
+            self.start_v_input()
 
-            self.voice_thread = QtCore.QThread()
-            self.voice_worker = VoiceRecognitionWorker(self.recognizer, self.microphone)
-            self.voice_worker.moveToThread(self.voice_thread)
-            self.voice_worker.message.connect(self.new_user_message.emit)
-            self.voice_thread.started.connect(self.voice_worker.run)
-            self.voice_thread.finished.connect(self.voice_worker.deleteLater)
-            self.voice_thread.start()
+    def start_v_input(self):
+        "включение голосового ввода"
+        self.voice_button_state = True
+        self.toolButton_9.setChecked(True)
+        msg = "Голосовой ввод активирован. Чем могу помочь?"
+        self.add_messg_chat(msg, "bot")
+        self.scroll_bottom()
+        QtWidgets.QApplication.processEvents()
+        self.play_v_assistant_speech(msg)
+        self.voice_thread = QtCore.QThread()
+        self.voice_worker = VoiceRecognitionWorker(self.recognizer, self.microphone)
+        self.voice_worker.moveToThread(self.voice_thread)
+        self.voice_worker.message.connect(self.new_user_message.emit)
+        self.voice_thread.started.connect(self.voice_worker.run)
+        self.voice_thread.finished.connect(self.voice_worker.deleteLater)
+        self.voice_thread.start()
+
+    def stop_v_input(self):
+        "выключение голосового ввода"
+        msg = "Голосовой ввод отключен."
+        self.add_messg_chat(msg, "bot")
+        self.voice_button_state = False
+        self.toolButton_9.setChecked(False)
+        if self.voice_worker:
+            self.voice_worker.stop()
+        if self.voice_thread and self.voice_thread.isRunning():
+            self.voice_thread.quit()
+            if not self.voice_thread.wait(3000):
+                self.voice_thread.terminate()
+                self.voice_thread.wait()
 
     def reply(self, text, turn_off_voice=False):
         "Ответ бота и его озвучка"
@@ -184,20 +202,20 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         if self.voice_button_state:
             self.play_v_assistant_speech(text)
             if turn_off_voice:
-                self.voice_button_state = False
-                self.toolButton_9.setChecked(False)
+                self.stop_v_input()
 
     def process_user_request(self, request):
         "обработка запроса пользователя и поиск ответа."
         command = request.lower().strip()
-        if command in ["привет", "здравствуйте", "добрый день"]:
+        greetings = ["привет", "здравствуйте", "добрый день"]
+        farewells = ["пока", "до свидания", "выход", "стоп"]
+        if command in greetings:
             self.reply("Чем могу помочь?")
             return
-        if command in ["пока", "до свидания", "выход", "стоп"]:
+        if command in farewells:
             self.reply("До свидания", turn_off_voice=True)
             self.close()
             return
-
         target_url = None
         for url, phrases in self.responses.items():
             if any(phrase in command for phrase in phrases):
@@ -217,13 +235,17 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
 
     def closeEvent(self, event):
         "закрытие"
-        self.voice_button_state = False
-        if self.voice_worker:
-            self.voice_worker.stop()  # останавливаем воркер
-        if self.voice_thread and self.voice_thread.isRunning():
-            self.voice_thread.quit()
-            self.voice_thread.wait()
+        if self.voice_button_state:
+            self.stop_v_input()
+        if self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
+            self.media_player.stop()
+        if self.temp_audio_file and os.path.exists(self.temp_audio_file):
+            try:
+                os.unlink(self.temp_audio_file)
+            except:
+                pass
         event.accept()
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
