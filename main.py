@@ -95,7 +95,7 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.toolButton_9.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
     def add_messg_chat(self, message, sender):
-        "стиль в зависимости от отправителя"
+        "стили в зависимости от отправителя"
         styles = {
             "bot": "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #f0f0f0; color: #333;}",
             "user": "QLabel {padding: 10px; margin: 5px; border-radius: 15px; background-color: #fff; color: #00401E;}"
@@ -129,9 +129,9 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
         self.add_messg_chat(text, "user")
         self.process_user_request(text)
 
-    def play_v_assistant_speech(self, text):
-        "речь ассистента"
-        if not (text and self.voice_button_state):
+    def _play_speech(self, text):
+        "речь ассистента (не зависит от voice_button_state)."
+        if not text:
             return
         try:
             tts = gTTS(text=text, lang='ru')
@@ -143,6 +143,11 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.media_player.play()
         except Exception as e:
             print(f"Ошибка синтеза речи: {e}")
+
+    def play_v_assistant_speech(self, text):
+        "речь ассистента (голосовой ввод включён)"
+        if self.voice_button_state:
+            self._play_speech(text)
 
     @pyqtSlot(QtMultimedia.QMediaPlayer.MediaStatus)
     def on_media_status_changed(self, status):
@@ -164,7 +169,18 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
             self.start_v_input()
 
     def start_v_input(self):
-        "включение голосового ввода"
+        "включение гс ввода с проверкой микрофона"
+        try:
+            with self.microphone as source:
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+        except Exception:
+            msg = "Проверьте подключение микрофона."
+            self.add_messg_chat(msg, "bot")
+            self.scroll_bottom()
+            QtWidgets.QApplication.processEvents()
+            self._play_speech(msg)
+            self.toolButton_9.setChecked(False)
+            return
         self.voice_button_state = True
         self.toolButton_9.setChecked(True)
         msg = "Голосовой ввод активирован. Чем могу помочь?"
