@@ -199,6 +199,8 @@ class MyPersonalAssistantApp(QtWidgets.QMainWindow, ui_untitled.Ui_PersonalAssis
 
     def stop_v_input(self):
         "выключение голосового ввода"
+        if not self.voice_button_state:
+            return
         msg = "Голосовой ввод отключен."
         self.add_messg_chat(msg, "bot")
         self.voice_button_state = False
